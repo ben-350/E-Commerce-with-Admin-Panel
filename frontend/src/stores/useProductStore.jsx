@@ -1,97 +1,82 @@
 import { create } from "zustand";
+import toast from "react-hot-toast";
 import axios from "../lib/axios";
-import { toast } from "react-hot-toast";
 
-export const useCartStore = create((set, get) => ({
-	cart: [],
-	coupon: null,
-	total: 0,
-	subtotal: 0,
-	isCouponApplied: false,
+export const useProductStore = create((set) => ({
+	products: [],
+	loading: false,
 
-	getMyCoupon: async () => {
+	setProducts: (products) => set({ products }),
+	createProduct: async (productData) => {
+		set({ loading: true });
 		try {
-			const response = await axios.get("/coupons");
-			set({ coupon: response.data });
+			const res = await axios.post("/products", productData);
+			set((prevState) => ({
+				products: [...prevState.products, res.data],
+				loading: false,
+			}));
 		} catch (error) {
-			console.error("Error fetching coupon:", error);
+			toast.error(error.response.data.error);
+			set({ loading: false });
 		}
 	},
-	applyCoupon: async (code) => {
+	fetchAllProducts: async () => {
+		set({ loading: true });
 		try {
-			const response = await axios.post("/coupons/validate", { code });
-			set({ coupon: response.data, isCouponApplied: true });
-			get().calculateTotals();
-			toast.success("Coupon applied successfully");
+			const response = await axios.get("/products");
+			set({ products: response.data.products, loading: false });
 		} catch (error) {
-			toast.error(error.response?.data?.message || "Failed to apply coupon");
+			set({ error: "Failed to fetch products", loading: false });
+			toast.error(error.response.data.error || "Failed to fetch products");
 		}
 	},
-	removeCoupon: () => {
-		set({ coupon: null, isCouponApplied: false });
-		get().calculateTotals();
-		toast.success("Coupon removed");
-	},
-
-	getCartItems: async () => {
+	fetchProductsByCategory: async (category) => {
+		set({ loading: true });
 		try {
-			const res = await axios.get("/cart");
-			set({ cart: res.data });
-			get().calculateTotals();
+			const response = await axios.get(`/products/category/${category}`);
+			set({ products: response.data.products, loading: false });
 		} catch (error) {
-			set({ cart: [] });
-			toast.error(error.response.data.message || "An error occurred");
+			set({ error: "Failed to fetch products", loading: false });
+			toast.error(error.response.data.error || "Failed to fetch products");
 		}
 	},
-	clearCart: async () => {
-		set({ cart: [], coupon: null, total: 0, subtotal: 0 });
-	},
-	addToCart: async (product) => {
+	deleteProduct: async (productId) => {
+		set({ loading: true });
 		try {
-			await axios.post("/cart", { productId: product._id });
-			toast.success("Product added to cart");
-
-			set((prevState) => {
-				const existingItem = prevState.cart.find((item) => item._id === product._id);
-				const newCart = existingItem
-					? prevState.cart.map((item) =>
-							item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
-					  )
-					: [...prevState.cart, { ...product, quantity: 1 }];
-				return { cart: newCart };
-			});
-			get().calculateTotals();
+			await axios.delete(`/products/${productId}`);
+			set((prevProducts) => ({
+				products: prevProducts.products.filter((product) => product._id !== productId),
+				loading: false,
+			}));
 		} catch (error) {
-			toast.error(error.response.data.message || "An error occurred");
+			set({ loading: false });
+			toast.error(error.response.data.error || "Failed to delete product");
 		}
 	},
-	removeFromCart: async (productId) => {
-		await axios.delete(`/cart`, { data: { productId } });
-		set((prevState) => ({ cart: prevState.cart.filter((item) => item._id !== productId) }));
-		get().calculateTotals();
-	},
-	updateQuantity: async (productId, quantity) => {
-		if (quantity === 0) {
-			get().removeFromCart(productId);
-			return;
+	toggleFeaturedProduct: async (productId) => {
+		set({ loading: true });
+		try {
+			const response = await axios.patch(`/products/${productId}`);
+			// this will update the isFeatured prop of the product
+			set((prevProducts) => ({
+				products: prevProducts.products.map((product) =>
+					product._id === productId ? { ...product, isFeatured: response.data.isFeatured } : product
+				),
+				loading: false,
+			}));
+		} catch (error) {
+			set({ loading: false });
+			toast.error(error.response.data.error || "Failed to update product");
 		}
-
-		await axios.put(`/cart/${productId}`, { quantity });
-		set((prevState) => ({
-			cart: prevState.cart.map((item) => (item._id === productId ? { ...item, quantity } : item)),
-		}));
-		get().calculateTotals();
 	},
-	calculateTotals: () => {
-		const { cart, coupon } = get();
-		const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-		let total = subtotal;
-
-		if (coupon) {
-			const discount = subtotal * (coupon.discountPercentage / 100);
-			total = subtotal - discount;
+	fetchFeaturedProducts: async () => {
+		set({ loading: true });
+		try {
+			const response = await axios.get("/products/featured");
+			set({ products: response.data, loading: false });
+		} catch (error) {
+			set({ error: "Failed to fetch products", loading: false });
+			console.log("Error fetching featured products:", error);
 		}
-
-		set({ subtotal, total });
 	},
 }));

@@ -1,9 +1,10 @@
 import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/Loginpage";
 import Homepage from "./pages/Homepage";
+import AdminPage from "./pages/AdminPage";
 import Navbar from "./components/Navbar";
 import { Routes, Route } from 'react-router-dom';
-import { useUserStore } from "./stores/useuserStore";
+import { useUserStore } from "./stores/useUserStore";
 import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { Navigate } from "react-router-dom";
@@ -29,6 +30,7 @@ function App() {
         <Route path='/' element={<Homepage />} />
         <Route path='/signup' element={!user? <SignupPage />:<Navigate to='/'/>} />
         <Route path='/login' element={!user? <LoginPage/> :<Navigate to='/' />} />
+        <Route path='/secret-dashboard' element={user.role==="admin"? <AdminPage/> :<Navigate to='/login' />} />
       </Routes>
       Hello world
     </div>
