@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
 export const protectRoute=async(req,res,next)=>{
-    try{console.log("Accrss",req.cookies.accessToken);
+    try{
     
         const accesstoken = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
         if(!accesstoken){

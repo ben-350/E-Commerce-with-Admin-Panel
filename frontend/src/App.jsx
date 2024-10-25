@@ -26,12 +26,13 @@ function App() {
       <div className='relative z-50 pt-20'/>
       </div>
       <Navbar />
-      <Routes>
-        <Route path='/' element={<Homepage />} />
-        <Route path='/signup' element={!user? <SignupPage />:<Navigate to='/'/>} />
-        <Route path='/login' element={!user? <LoginPage/> :<Navigate to='/' />} />
-        <Route path='/secret-dashboard' element={user.role==="admin"? <AdminPage/> :<Navigate to='/login' />} />
-      </Routes>
+     <Routes>
+  <Route path='/' element={<Homepage />} />
+  <Route path='/signup' element={!user ? <SignupPage /> : <Navigate to='/' />} />
+  <Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
+  <Route path='/secret-dashboard' element={user && user.role === "admin" ? <AdminPage /> : <Navigate to='/login' />} />
+</Routes>
+
       Hello world
     </div>
     </div>
