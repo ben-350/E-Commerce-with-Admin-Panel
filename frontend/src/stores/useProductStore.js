@@ -10,16 +10,21 @@ export const useProductStore = create((set) => ({
 	createProduct: async (productData) => {
 		set({ loading: true });
 		try {
+			// Do not set Content-Type; allow axios to auto-configure it for multipart data
 			const res = await axios.post("/products", productData);
 			set((prevState) => ({
 				products: [...prevState.products, res.data],
 				loading: false,
 			}));
+			toast.success("Product created successfully");
 		} catch (error) {
-			toast.error(error.response.data.error);
+			console.error("Error creating product:", error.response?.data || error.message);
+			toast.error(error.response?.data?.message || "Failed to create product");
 			set({ loading: false });
 		}
 	},
+	
+
 	fetchAllProducts: async () => {
 		set({ loading: true });
 		try {

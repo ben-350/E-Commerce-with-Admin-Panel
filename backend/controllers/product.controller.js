@@ -30,29 +30,47 @@ export const getFeaturedProducts=async(req,res)=>{
     }
 };
 
-export const createProduct=async(req,res)=>{
+export const createProduct = async (req, res) => {
     try {
-        const{name, description, price, image, category}=req.body;
-        let cloudinaryResponse=null
-        if(image)
-        {
-         cloudinaryResponse=   await cloudinary.uploader.upload(image, {folder:"products"});
+        const { name, description, price, category } = req.body;
+        const image = req.files?.image || req.body.image;
+        
+        console.log("Request body:", req.body);
+        console.log("Files:", req.files);
+        console.log("Image Check:", image);
+
+        if (!name || !description || !price || !category) {
+            return res.status(400).json({ 
+                message: "Missing required fields",
+                received: { name, description, price, category, hasImage: !!image }
+            });
         }
-        const product  =await Product.create({
+        
+        let cloudinaryResponse = null;
+        
+        if (image) {
+            if (image.tempFilePath) {
+                cloudinaryResponse = await cloudinary.uploader.upload(image.tempFilePath);
+            } else if (typeof image === 'string' && image.startsWith('data:image')) {
+                cloudinaryResponse = await cloudinary.uploader.upload(image);
+            }
+        }
+
+        const product = await Product.create({
             name,
             description,
-            price,
-            image:cloudinaryResponse?.secure_url? cloudinaryResponse.secure_url: "",
+            price: Number(price),
+            image: cloudinaryResponse?.secure_url || "",
             category
-        })
-        res.status(201).json(product)
+        });
+
+        res.status(201).json(product);
     } catch (error) {
         console.log("Error in createProduct controller", error.message);
-        res.status(500).json({message:"Server error",error: error.message})
-        
-        
+        res.status(500).json({ message: "Server error", error: error.message });
     }
-}
+};
+
 
 export const deleteProduct=async(req,res)=>{
     try {
