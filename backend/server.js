@@ -36,7 +36,7 @@ app.use("/api/payments", paymentRoutes);
 
 
 app.use("/api/analytics", analyticsRoutes);    
-
+//c
 
 app.listen(PORT, ()=>{
  console.log("Server is running on http://localhost:"+ PORT );
