@@ -2,19 +2,29 @@ import SignupPage from "./pages/SignupPage";
 import LoginPage from "./pages/Loginpage";
 import Homepage from "./pages/Homepage";
 import AdminPage from "./pages/AdminPage";
+import CategoryPage from "./pages/CategoryPage";
 import Navbar from "./components/Navbar";
 import { Routes, Route } from 'react-router-dom';
 import { useUserStore } from "./stores/useUserStore";
 import { useEffect } from "react";
 import LoadingSpinner from "./components/LoadingSpinner";
 import { Navigate } from "react-router-dom";
+import CategoryItem from "./components/CategoryItem";
+import CartPage from "./pages/CartPage";
+import { useCartStore } from "./stores/useCartStore";
 
 function App() {
   const {user,checkAuth, checkingAuth}=useUserStore();
+  const {getCartItems}=useCartStore()
   useEffect(()=>{
     checkAuth();
 
   },[checkAuth]);
+
+  useEffect(()=>{
+    if(!user) return;
+      getCartItems();
+  },[getCartItems,user]);  
   if(checkingAuth) return <LoadingSpinner/>
   return (
     <div>
@@ -31,6 +41,8 @@ function App() {
   <Route path='/signup' element={!user ? <SignupPage /> : <Navigate to='/' />} />
   <Route path='/login' element={!user ? <LoginPage /> : <Navigate to='/' />} />
   <Route path='/secret-dashboard' element={user && user.role === "admin" ? <AdminPage /> : <Navigate to='/login' />} />
+  <Route path='/category/:category' element={<CategoryPage/>} />
+  <Route path='/cart' element={user?<CartPage/>: <Navigate to='/login'/>} />
 </Routes>
 
       Hello world

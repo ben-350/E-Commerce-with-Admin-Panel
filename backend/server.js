@@ -25,7 +25,7 @@ app.use(cors({
 app.use(express.json({limit:"10mb"}));
 app.use(cookieParser());
 
-const PORT=process.env.PORT || 5000
+const PORT=process.env.PORT || 6000
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);    
@@ -33,6 +33,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);    
 app.use("/api/payments", paymentRoutes);    
 app.use("/api/analytics", analyticsRoutes);    
+
 
 app.listen(PORT, ()=>{
  console.log("Server is running on http://localhost:"+ PORT );

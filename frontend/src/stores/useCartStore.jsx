@@ -3,106 +3,95 @@ import axios from "../lib/axios";
 import { toast } from "react-hot-toast";
 
 export const useCartStore = create((set, get) => ({
-	user: null,
-	loading: false,
-	checkingAuth: true,
+	cart: [],
+	coupon: null,
+	total: 0,
+	subtotal: 0,
+	isCouponApplied: false,
 
-	signup: async ({ name, email, password, confirmPassword }) => {
-		set({ loading: true });
-
-		if (password !== confirmPassword) {
-			set({ loading: false });
-			return toast.error("Passwords do not match");
-		}
-
+	getMyCoupon: async () => {
 		try {
-			const res = await axios.post("/auth/signup", { name, email, password });
-			set({ user: res.data, loading: false });
+			const response = await axios.get("/coupons");
+			set({ coupon: response.data });
 		} catch (error) {
-			set({ loading: false });
+			console.error("Error fetching coupon:", error);
+		}
+	},
+	applyCoupon: async (code) => {
+		try {
+			const response = await axios.post("/coupons/validate", { code });
+			set({ coupon: response.data, isCouponApplied: true });
+			get().calculateTotals();
+			toast.success("Coupon applied successfully");
+		} catch (error) {
+			toast.error(error.response?.data?.message || "Failed to apply coupon");
+		}
+	},
+	removeCoupon: () => {
+		set({ coupon: null, isCouponApplied: false });
+		get().calculateTotals();
+		toast.success("Coupon removed");
+	},
+
+	getCartItems: async () => {
+		try {
+			const res = await axios.get("/cart");
+			set({ cart: res.data });
+			get().calculateTotals();
+		} catch (error) {
+			set({ cart: [] });
 			toast.error(error.response.data.message || "An error occurred");
 		}
 	},
-	login: async (email, password) => {
-		set({ loading: true });
-
+	clearCart: async () => {
+		set({ cart: [], coupon: null, total: 0, subtotal: 0 });
+	},
+	addToCart: async (product) => {
 		try {
-			const res = await axios.post("/auth/login", { email, password });
+			await axios.post("/cart", { productId: product._id });
+			toast.success("Product added to cart");
 
-			set({ user: res.data, loading: false });
+			set((prevState) => {
+				const existingItem = prevState.cart.find((item) => item._id === product._id);
+				const newCart = existingItem	
+					? prevState.cart.map((item) =>
+							item._id === product._id ? { ...item, quantity: item.quantity + 1 } : item
+					  )
+					: [...prevState.cart, { ...product, quantity: 1 }];
+				return { cart: newCart };
+			});
+			get().calculateTotals();
 		} catch (error) {
-			set({ loading: false });
 			toast.error(error.response.data.message || "An error occurred");
 		}
 	},
-
-	logout: async () => {
-		try {
-			await axios.post("/auth/logout");
-			set({ user: null });
-		} catch (error) {
-			toast.error(error.response?.data?.message || "An error occurred during logout");
-		}
+	removeFromCart: async (productId) => {
+		await axios.delete(`/cart`, { data: { productId } });
+		set((prevState) => ({ cart: prevState.cart.filter((item) => item._id !== productId) }));
+		get().calculateTotals();
 	},
-
-	checkAuth: async () => {
-		set({ checkingAuth: true });
-		try {
-			const response = await axios.get("/auth/profile");
-			set({ user: response.data, checkingAuth: false });
-		} catch (error) {
-			console.log(error.message);
-			set({ checkingAuth: false, user: null });
+	updateQuantity: async (productId, quantity) => {
+		if (quantity === 0) {
+			get().removeFromCart(productId);
+			return;
 		}
+
+		await axios.put(`/cart/${productId}`, { quantity });
+		set((prevState) => ({
+			cart: prevState.cart.map((item) => (item._id === productId ? { ...item, quantity } : item)),
+		}));
+		get().calculateTotals();
 	},
+	calculateTotals: () => {
+		const { cart, coupon } = get();
+		const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+		let total = subtotal;
 
-	refreshToken: async () => {
-		// Prevent multiple simultaneous refresh attempts
-		if (get().checkingAuth) return;
-
-		set({ checkingAuth: true });
-		try {
-			const response = await axios.post("/auth/refresh-token");
-			set({ checkingAuth: false });
-			return response.data;
-		} catch (error) {
-			set({ user: null, checkingAuth: false });
-			throw error;
+		if (coupon) {
+			const discount = subtotal * (coupon.discountPercentage / 100);
+			total = subtotal - discount;
 		}
+
+		set({ subtotal, total });
 	},
 }));
-
-// TODO: Implement the axios interceptors for refreshing access token
-
-// Axios interceptor for token refresh
-let refreshPromise = null;
-
-axios.interceptors.response.use(
-	(response) => response,
-	async (error) => {
-		const originalRequest = error.config;
-		if (error.response?.status === 401 && !originalRequest._retry) {
-			originalRequest._retry = true;
-
-			try {
-				// If a refresh is already in progress, wait for it to complete
-				if (refreshPromise) {
-					await refreshPromise;
-					return axios(originalRequest);
-				}
-
-				// Start a new refresh process
-				refreshPromise = useUserStore.getState().refreshToken();
-				await refreshPromise;
-				refreshPromise = null;
-
-				return axios(originalRequest);
-			} catch (refreshError) {
-				// If refresh fails, redirect to login or handle as needed
-				useUserStore.getState().logout();
-				return Promise.reject(refreshError);
-			}
-		}
-		return Promise.reject(error);
-	}
-);

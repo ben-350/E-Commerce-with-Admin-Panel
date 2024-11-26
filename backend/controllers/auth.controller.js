@@ -18,19 +18,28 @@ const storeRefreshToken=async (userId,refreshToken)=>{
     await redis.set(`refresh_token:${userId}`,refreshToken,"EX",7*24*60*60);
 } 
 
-const setCookies=(res, accessToken, refreshToken)=>{
+const setCookies = (res, accessToken, refreshToken) => {
+    // Set accessToken cookie
     res.cookie("accessToken", accessToken, {
         httpOnly: true,
-        secure:process.env.NODE_ENV==="production",
-        sameSite:"strict",
-        maxAge: 15*60*1000,//15 minute
-    })
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    // Log the accessToken to console
+    console.log("Access Token Set:", accessToken);
+
+    // Set refreshToken cookie
     res.cookie("refreshToken", refreshToken, {
         httpOnly: true,
-        secure:process.env.NODE_ENV==="production",
-        sameSite:"strict",
-        maxAge: 7*24*60*60*1000,//7 day
-    })
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Log the refreshToken to console
+    console.log("Refresh Token Set:", refreshToken);
 }
 
 export const signup=async (req,res)=>{
