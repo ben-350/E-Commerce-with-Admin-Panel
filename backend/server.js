@@ -18,14 +18,16 @@ dotenv.config();
 
 const app=  express();
 app.use(cors({
-    origin: "http://localhost:5173", 
-    credentials: true, 
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173"], 
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
 app.use(express.json({limit:"10mb"}));
 app.use(cookieParser());
 
-const PORT=process.env.PORT || 6000
+const PORT=process.env.PORT || 8080
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);    
@@ -33,7 +35,7 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);  
 app.use("/api/payments", paymentRoutes);    
 app.use("/api/analytics", analyticsRoutes);    
-//c
+
 app.listen(PORT, ()=>{
  console.log("Server is running on http://localhost:"+ PORT );
  connectDB();

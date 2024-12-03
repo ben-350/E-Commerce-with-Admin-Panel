@@ -5,6 +5,6 @@ import {validateCoupon,getCoupon } from "../controllers/coupon.controller.js"
 const router=expres.Router();
 
 router.get("/", protectRoute,getCoupon);
-router.get("/validate", protectRoute,validateCoupon);
+router.post("/validate", protectRoute,validateCoupon);
 
 export default router

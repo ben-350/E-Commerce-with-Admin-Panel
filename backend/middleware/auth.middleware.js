@@ -1,28 +1,29 @@
 import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 
-
-export const  protectRoute = async (req, res, next) => {
+export const protectRoute = async (req, res, next) => {
     try {
-        // Log cookies and headers for debugging
-        console.log("Cookies:", req.cookies);
-        console.log("Authorization header:", req.headers.authorization);
 
+
+        // Get the access token from cookies or authorization header
         const accesstoken = req.cookies.accessToken || req.headers.authorization?.split(' ')[1];
-        console.log("Cookies", req.cookies);
-        
-        console.log("accesstoken", accesstoken);
-
+        // Check if the token is provided
         if (!accesstoken) {
             return res.status(401).json({ message: "Unauthorized - No Token provided" });
         }
 
         try {
+            // Verify and decode the token
             const decoded = jwt.verify(accesstoken, process.env.ACCESS_TOKEN_SECRET);
+            
+       
+            
+            // Find the user associated with the token
             const user = await User.findById(decoded.userId).select("-password");
             if (!user) {
                 return res.status(401).json({ message: "User not found" });
             }
+            
             req.user = user;
             next();
         } catch (error) {
@@ -32,10 +33,11 @@ export const  protectRoute = async (req, res, next) => {
             throw error;
         }
     } catch (error) {
-        console.log("Error in ProtectedRoute middleware", error.message);
+        
         return res.status(401).json({ message: "Unauthorized - Invalid access token" });
     }
 };
+
 
 
 export const adminRoute=async(req,res,next)=>{

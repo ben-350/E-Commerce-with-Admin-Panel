@@ -2,8 +2,12 @@ import { json } from "express";
 import { redis } from "../lib/redis.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const generateTokens=(userId)=>{
+    userId=userId.toString();
+    console.log("uid", userId);
     const accessToken = jwt.sign({userId}, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn:"15m"
     })
@@ -19,28 +23,33 @@ const storeRefreshToken=async (userId,refreshToken)=>{
 } 
 
 const setCookies = (res, accessToken, refreshToken) => {
-    // Set accessToken cookie
-    res.cookie("accessToken", accessToken, {
+    console.log('Setting Access Token:', accessToken);
+    console.log('Setting Refresh Token:', refreshToken);
+    console.log('Current NODE_ENV:', process.env.NODE_ENV);
+
+    const accessCookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production" || process.env.NODE_ENV === "development",
+        sameSite: "None",
         maxAge: 15 * 60 * 1000, // 15 minutes
-    });
-
-    // Log the accessToken to console
-    console.log("Access Token Set:", accessToken);
-
-    // Set refreshToken cookie
-    res.cookie("refreshToken", refreshToken, {
+    };
+    
+    const refreshCookieOptions = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: process.env.NODE_ENV === "production" || process.env.NODE_ENV === "development",
+        sameSite: "None",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    };
 
-    // Log the refreshToken to console
-    console.log("Refresh Token Set:", refreshToken);
+    // Log cookie options for both tokens
+    console.log('Access Token Cookie Options:', accessCookieOptions);
+    console.log('Refresh Token Cookie Options:', refreshCookieOptions);
+
+    // Set the cookies in the response
+    res.cookie("accessToken", accessToken, accessCookieOptions);
+    res.cookie("refreshToken", refreshToken, refreshCookieOptions);
 }
+
 
 export const signup=async (req,res)=>{
     const {email, password, name}= req.body;
